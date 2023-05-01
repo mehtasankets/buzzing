@@ -4,10 +4,12 @@ version = "0.1.0"
 description = "Buzz Telegram with important notifications"
 authors = [" Sanket Satish Mehta <mehtasankets@gmail.com>"]
 readme = "README.md"
-packages = [{include = "pkgname"}]
+packages = [{include = "buzzing"}]
 
 [tool.poetry.dependencies]
 python = "^3.7"
+python-telegram-bot = "^20.2"
+requests = "^2.29.0"
 
 [build-system]
 requires = ["poetry-core"]
