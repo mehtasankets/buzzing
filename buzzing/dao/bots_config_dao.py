@@ -11,15 +11,15 @@ class BotsConfigDao():
         cursor = self.db_connection.execute(
             """
                 SELECT
-                    id, token, entry_module, entry_class, metadata, is_active
+                    id, name, description, token, password, entry_module, entry_class, metadata, is_active
                 FROM bots_config
             """)
         bot_configs = []
         for c in cursor:
-            bot_class = class_from_string(c[2], c[3])
+            bot_class = class_from_string(c[5], c[6])
             bot = bot_class()
-            metadata = '{}' if c[4] is None else c[4]
-            is_active = bool(int(c[5]))
-            config = BotConfig(c[0], c[1], bot, json.loads(metadata), is_active)
+            metadata = '{}' if c[7] is None else c[7]
+            is_active = bool(int(c[8]))
+            config = BotConfig(c[0], c[1], c[2], c[3], c[4], bot, json.loads(metadata), is_active)
             bot_configs.append(config)
         return bot_configs

@@ -1,1 +1,3 @@
 buzzing.log
+**/*/__pycache__/**
+dist/
