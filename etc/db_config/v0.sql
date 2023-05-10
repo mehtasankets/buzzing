@@ -12,5 +12,15 @@ CREATE TABLE IF NOT EXISTS bots_config(
     is_active BOOLEAN
 );
 
+DROP TABLE IF EXISTS subscription;
+
+CREATE TABLE IF NOT EXISTS subscription(
+    user_id INTEGER,
+    username TEXT,
+    bot_id INTEGER,
+    is_active BOOLEAN,
+    PRIMARY KEY (user_id, bot_id)
+);
+
 INSERT INTO bots_config (name, description, token, password, entry_module, entry_class, metadata, is_active) 
 values ('testbot1', 'Test bot for experimentations', '<token>', 'test123', 'buzzing.bots.test_bot', 'TestBot', null, 1);
