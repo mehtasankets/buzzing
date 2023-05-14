@@ -1,6 +1,8 @@
 import logging
 import os
 import sqlite3
+import signal
+import sys
 from bots_manager.bots_interactor import BotsInteractor
 
 def main():
@@ -10,9 +12,20 @@ def main():
 
     db_file_path = os.path.abspath(os.environ.get('BUZZING_DB_PATH', 'buzzing.db'))
     connection = sqlite3.connect(db_file_path, check_same_thread=False)
+    
 
     bots_interactor = BotsInteractor(connection)
-    bots_interactor.register_bots()
+    bot_loop = bots_interactor.register_bots()
+
+    # Register SIGINT to stop bots once Ctrl - C is pressed
+    def sigint_handler(*args):
+        bots_interactor.stop_bots()
+        log.info("Bye bye!")
+        sys.exit()
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    # To run bots until Ctrl - C is pressed
+    bot_loop.run_forever()
 
 def setup_logger():
     log_formatter = logging.Formatter(

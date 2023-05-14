@@ -14,6 +14,7 @@ class BotsConfigDao():
                 SELECT
                     id, name, description, token, password, entry_module, entry_class, metadata, is_active
                 FROM bots_config
+                WHERE is_active = 1
             """)
         bot_configs = []
         for c in cursor:

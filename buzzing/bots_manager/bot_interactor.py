@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, filters, MessageHandler
 from buzzing.model.subscription import Subscription
 import logging
+import asyncio
 
 HELP_STR = """
 Supported commands:
@@ -18,7 +19,6 @@ class BotInteractor():
         self.subscriptions = subscriptions
         self.bots_config_dao = bots_config_dao
         self.application = Application.builder().token(config.token).build()
-
         startHandler = ConversationHandler(
             entry_points=[CommandHandler("start", self.start)],
             states={
@@ -26,13 +26,22 @@ class BotInteractor():
             },
             fallbacks=[CommandHandler("cancel", self.cancel)],
         )
-
         self.application.add_handler(startHandler)
-
         self.application.add_handler(CommandHandler("help", self.help))
         self.application.add_handler(CommandHandler("fetchnow", self.fetch_now))
         self.application.add_handler(CommandHandler("stop", self.stop))
-        self.application.run_polling()
+        self.stop_bot = False
+
+    async def initiate(self):
+        LOG.info(f'Initiating {self.config.description} bot!')
+        async with self.application:
+            await self.application.start()
+            await self.application.updater.start_polling()
+            while not self.stop_bot:
+                await asyncio.sleep(1)
+
+            await self.application.updater.stop()
+            await self.application.stop()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         LOG.info(f'Start received from: {update.effective_chat}')
@@ -88,3 +97,6 @@ class BotInteractor():
         data = self.config.bot.fetch()
         for s in self.subscriptions:
             await self.application.bot.send_message(s.userId, data)
+
+    def stop_polling(self):
+        self.stop_bot = True

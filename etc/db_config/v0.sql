@@ -23,4 +23,7 @@ CREATE TABLE IF NOT EXISTS subscription(
 );
 
 INSERT INTO bots_config (name, description, token, password, entry_module, entry_class, metadata, is_active) 
-values ('testbot1', 'Test bot for experimentations', '<token>', 'test123', 'buzzing.bots.test_bot', 'TestBot', null, 1);
+values ('testbot1', 'Test bot for experimentations 1', '<token1>', 'test123', 'buzzing.bots.test_bot', 'TestBot', null, 1);
+
+INSERT INTO bots_config (name, description, token, password, entry_module, entry_class, metadata, is_active) 
+values ('testbot2', 'Test bot for experimentations 2', '<token2>', 'test321', 'buzzing.bots.test_bot', 'TestBot', null, 1);
