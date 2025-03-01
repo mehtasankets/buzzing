@@ -44,9 +44,14 @@ jobs:
       
     - name: Run tests with coverage
       run: |
-        poetry run pytest --cov=buzzing --cov-report=term-missing --cov-fail-under=75
+        poetry run pytest --cov=buzzing --cov-report=xml --cov-report=term-missing --cov-fail-under=75 --junitxml=test-results.xml
       
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.xml,./test-results.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true

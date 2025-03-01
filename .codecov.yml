@@ -1,0 +1,27 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 75%
+        threshold: 1%
+    patch:
+      default:
+        target: 75%
+        threshold: 1%
+
+comment:
+  layout: "reach, diff, flags, files, components"
+  behavior: default
+  require_changes: false
+
+# Enable test analytics
+test_analytics:
+  enabled: true
+  annotations:
+    enabled: true
+    failed_tests: true
+    flaky_tests: true
+  notify:
+    wait_for_ci: true
+  strict_mode: true
+  after_n_builds: 1
