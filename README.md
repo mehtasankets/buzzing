@@ -132,6 +132,22 @@ CREATE TABLE subscription(
 
 The database is automatically initialized with test bots when you first run the application.
 
+### Database Migrations
+
+The application uses migrations to manage database schema changes. Migration scripts are located in `etc/db_config/`.
+
+**Apply a Migration:**
+```bash
+python -m buzzing.scripts.apply_migration buzzing.db /path/to/migration/script.sql
+```
+
+**Example - Adding Cron Scheduling Support:**
+```bash
+python -m buzzing.scripts.apply_migration buzzing.db /mnt/d/Sanket/Programs/Workspace/buzzing/etc/db_config/v1_add_cron.sql
+```
+
+Migrations are idempotent and can be safely run multiple times. The system tracks applied migrations to prevent duplicate application.
+
 ## 📝 Contributing
 
 1. Fork the repository
