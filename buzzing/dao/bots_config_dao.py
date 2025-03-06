@@ -37,7 +37,7 @@ class BotsConfigDao:
                 """
                 SELECT
                     id, name, description, token, password, 
-                    entry_module, entry_class, metadata, is_active
+                    entry_module, entry_class, metadata, is_active, cron
                 FROM bots_config
                 WHERE is_active = ?
                 """, (1,))
@@ -57,7 +57,8 @@ class BotsConfigDao:
                         password=row[4],
                         bot=bot,
                         metadata=json.loads(metadata),
-                        is_active=is_active
+                        is_active=is_active,
+                        cron=row[9]
                     )
                     bot_configs.append(config)
                 except Exception as e:

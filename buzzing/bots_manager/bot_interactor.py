@@ -4,6 +4,7 @@ from telegram.ext import (Application, CommandHandler, ContextTypes,
 from buzzing.model.subscription import Subscription
 from buzzing.model.bot_config import BotConfig
 from buzzing.dao.bots_config_dao import BotsConfigDao
+from buzzing.util.cron_scheduler import CronScheduler
 import logging
 import asyncio
 from typing import List, Optional, Dict, Any, cast
@@ -40,6 +41,7 @@ class BotInteractor:
         
         # Initialize bot state
         self.stop_bot = False
+        self.cron_task: Optional[asyncio.Task] = None
         
         # Set up conversation handler for authentication
         self.start_handler = ConversationHandler(
@@ -87,15 +89,28 @@ class BotInteractor:
                             raise  # Re-raise to properly handle task cancellation
                     stop_event.set()
                 
+                # Start cron task if configured
+                if self.config.cron:
+                    LOG.info(f'Starting cron scheduler for {self.config.name} with expression: {self.config.cron}')
+                    self.cron_task = asyncio.create_task(
+                        CronScheduler.schedule_task(self.config.cron, self.fetch)
+                    )
+                
                 # Create task for stop checking
                 stop_task = asyncio.create_task(check_stop())
                 
                 try:
                     await stop_event.wait()
                 finally:
+                    # Cancel all tasks
                     stop_task.cancel()
+                    if self.cron_task:
+                        self.cron_task.cancel()
+                    
                     try:
                         await stop_task
+                        if self.cron_task:
+                            await self.cron_task
                     except asyncio.CancelledError:
                         pass
                     
@@ -181,9 +196,21 @@ class BotInteractor:
             )
 
     async def fetch(self):
-        data = await self.config.bot.fetch()
-        for s in self.subscriptions:
-            await self.application.bot.send_message(s.user_id, data)
+        """Fetch data and send to all subscribed users.
+        
+        This method is called both by the cron scheduler and manually via fetch_now.
+        It fetches data from the bot implementation and sends it to all subscribed users.
+        """        
+        try:
+            data = await self.config.bot.fetch()
+            active_subs = [s for s in self.subscriptions if s.is_active]
+            for s in active_subs:
+                try:
+                    await self.application.bot.send_message(s.user_id, data)
+                except Exception as e:
+                    LOG.error(f'Error sending message to user {s.user_id}: {e}')
+        except Exception as e:
+            LOG.error(f'Error in scheduled fetch for {self.config.name}: {e}')
 
     async def stop_polling(self):
         """Stop the bot polling gracefully."""
@@ -199,15 +226,9 @@ class BotInteractor:
                 # Then stop and shutdown the application if it's running
                 if hasattr(self.application, 'running') and self.application.running:
                     await self.application.stop()
-                    if hasattr(self.application, 'shutdown'):
-                        await self.application.shutdown()
-                
-                LOG.info(f'Bot stopped: {self.config.name}')
-            except RuntimeError as e:
-                # Handle case where components are already stopped
-                if 'not running' not in str(e).lower():
-                    raise
-                LOG.debug(f'Component already stopped for bot {self.config.name}: {str(e)}')
-                
+                    await self.application.shutdown()
+            except Exception as e:
+                LOG.error(f'Error during bot shutdown: {e}')
         except Exception as e:
-            LOG.error(f'Error stopping bot {self.config.name}: {str(e)}')
+            LOG.error(f'Error stopping bot {self.config.name}: {e}')
+            raise

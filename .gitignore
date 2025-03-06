@@ -39,6 +39,11 @@ coverage.xml
 
 # Logs
 *.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 buzzing.log
 
 # Environment
