@@ -1,1 +1,1 @@
-poetry run python buzzing/driver.py
+poetry run python -m buzzing.driver

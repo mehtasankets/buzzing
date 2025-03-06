@@ -1,9 +1,12 @@
 {
     "python.testing.pytestArgs": [
-        "tests"
+        "tests",
+        "-v",
+        "--tb=short"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,
@@ -13,5 +16,10 @@
         "**/Thumbs.db": true,
         "**/.pytest_cache": true,
         "**/__pycache__": true
-    }
+    },
+    "python.defaultInterpreterPath": "/root/.cache/pypoetry/virtualenvs/buzzing-aEnP1rND-py3.12/bin/python",
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ]
 }
