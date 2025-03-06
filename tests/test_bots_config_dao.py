@@ -20,7 +20,8 @@ def db_connection():
             entry_module TEXT,
             entry_class TEXT,
             metadata TEXT,
-            is_active BOOLEAN
+            is_active BOOLEAN,
+            cron TEXT
         )
     ''')
     
@@ -120,3 +121,100 @@ def test_sql_injection_prevention(dao):
     # Table should still exist and we should be able to query it
     subscriptions = dao.fetch_all_subscriptions()
     assert len(subscriptions) == 1
+
+
+def test_subscribe_update_existing(dao):
+    """Test updating an existing subscription."""
+    # Create initial subscription
+    subscription1 = Subscription(
+        user_id=111222333,
+        username="original_name",
+        bot_id=1,
+        is_active=True
+    )
+    dao.subscribe(subscription1)
+    
+    # Update same user with new username
+    subscription2 = Subscription(
+        user_id=111222333,
+        username="updated_name",
+        bot_id=1,
+        is_active=True
+    )
+    dao.subscribe(subscription2)
+    
+    # Should have only one subscription with updated username
+    subscriptions = dao.fetch_all_subscriptions()
+    matching = [s for s in subscriptions if s.user_id == 111222333]
+    assert len(matching) == 1
+    assert matching[0].username == "updated_name"
+
+
+def test_fetch_all_bots_configs_with_invalid_class(dao, db_connection):
+    """Test fetching bot configs with invalid module/class references."""
+    # Insert a bot config with invalid module/class
+    db_connection.execute('''
+        INSERT INTO bots_config (name, description, token, password, entry_module, entry_class, metadata, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ('invalid_bot', 'Invalid Bot', 'token', 'pass', 'invalid.module', 'InvalidClass', '{}', 1))
+    
+    # This should not raise an exception but log an error and skip the invalid config
+    configs = dao.fetch_all_bots_configs()
+    # Should only get the valid configs (1 from fixture)
+    valid_configs = [c for c in configs if c.name == 'test_bot']
+    assert len(valid_configs) == 1
+
+
+def test_fetch_all_bots_configs_with_invalid_json(dao, db_connection):
+    """Test fetching bot configs with invalid JSON in metadata."""
+    # Insert a bot config with invalid JSON in metadata
+    db_connection.execute('''
+        INSERT INTO bots_config (name, description, token, password, entry_module, entry_class, metadata, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', ('json_error_bot', 'JSON Error Bot', 'token', 'pass', 'buzzing.bots.test_bot', 'TestBot', '{invalid json', 1))
+    
+    # This should not raise an exception but log an error and skip the invalid config
+    configs = dao.fetch_all_bots_configs()
+    # Should only get the valid configs (1 from fixture)
+    valid_configs = [c for c in configs if c.name == 'test_bot']
+    assert len(valid_configs) == 1
+
+
+class MockErrorConnection:
+    """A mock connection that raises errors for testing."""
+    def __init__(self, error_type=sqlite3.OperationalError, error_msg="Mock database error"):
+        self.error_type = error_type
+        self.error_msg = error_msg
+    
+    def execute(self, *args, **kwargs):
+        raise self.error_type(self.error_msg)
+    
+    def commit(self):
+        raise self.error_type(self.error_msg)
+    
+    def rollback(self):
+        # Allow rollback to succeed
+        pass
+
+
+def test_database_error_handling():
+    """Test error handling for database operations."""
+    # Create a DAO with a connection that will raise errors
+    error_dao = BotsConfigDao(MockErrorConnection())
+    
+    # Test fetch_all_bots_configs error handling
+    with pytest.raises(sqlite3.OperationalError):
+        error_dao.fetch_all_bots_configs()
+    
+    # Test fetch_all_subscriptions error handling
+    with pytest.raises(sqlite3.OperationalError):
+        error_dao.fetch_all_subscriptions()
+    
+    # Test subscribe error handling
+    subscription = Subscription(user_id=999, username="error_test", bot_id=1, is_active=True)
+    with pytest.raises(sqlite3.OperationalError):
+        error_dao.subscribe(subscription)
+    
+    # Test unsubscribe error handling
+    with pytest.raises(sqlite3.OperationalError):
+        error_dao.unsubscribe(subscription)

@@ -1,13 +1,14 @@
 """Tests for BotInteractor."""
 import pytest
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch, AsyncMock, call
 from telegram import Update
 from telegram.ext import Application, CallbackContext
 from buzzing.bots_manager.bot_interactor import BotInteractor
 from buzzing.model.bot_config import BotConfig
 from buzzing.model.subscription import Subscription
 from buzzing.bots.test_bot import TestBot
+from buzzing.util.cron_scheduler import CronScheduler
 
 @pytest.fixture
 def bot_config():
@@ -20,7 +21,23 @@ def bot_config():
         password="test_password",
         bot=TestBot(),
         metadata={"test_key": "test_value"},
-        is_active=True
+        is_active=True,
+        cron=None
+    )
+
+@pytest.fixture
+def bot_config_with_cron():
+    """Create a test bot configuration with cron schedule."""
+    return BotConfig(
+        id=2,
+        name="test_bot_with_cron",
+        description="Test bot with cron for unit tests",
+        token="test_token_cron",
+        password="test_password",
+        bot=TestBot(),
+        metadata={"test_key": "test_value"},
+        is_active=True,
+        cron="*/5 * * * *"
     )
 
 @pytest.fixture
@@ -52,6 +69,13 @@ def bot_interactor(bot_config, dao, mock_update):
     # Create a subscription for the test user
     subscriptions = [Subscription(mock_update.effective_user.id, mock_update.effective_user.username, bot_config.id, True)]
     return BotInteractor(bot_config, subscriptions, dao)
+
+@pytest.fixture
+def bot_interactor_with_cron(bot_config_with_cron, dao, mock_update):
+    """Create a BotInteractor instance with cron scheduling."""
+    # Create a subscription for the test user
+    subscriptions = [Subscription(mock_update.effective_user.id, mock_update.effective_user.username, bot_config_with_cron.id, True)]
+    return BotInteractor(bot_config_with_cron, subscriptions, dao)
 
 @pytest.mark.asyncio
 async def test_start_command(bot_interactor, mock_update, mock_context):

@@ -24,7 +24,8 @@ def db_connection():
             entry_module TEXT,
             entry_class TEXT,
             metadata TEXT,
-            is_active BOOLEAN
+            is_active BOOLEAN,
+            cron TEXT
         )
     ''')
     
