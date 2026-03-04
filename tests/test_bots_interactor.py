@@ -63,7 +63,10 @@ async def test_bot_initialization(bots_interactor):
     mock_app.bot = AsyncMock()
     mock_app.bot.initialize = AsyncMock()
     mock_app.bot.delete_webhook = AsyncMock()
-    mock_app.add_handler = AsyncMock()
+    mock_app.add_handler = MagicMock()
+    mock_app.updater = AsyncMock()
+    mock_app.updater.start_polling = AsyncMock()
+    mock_app.updater.stop = AsyncMock()
     
     # Create a mock builder
     mock_builder = MagicMock()
@@ -91,6 +94,8 @@ async def test_bot_initialization(bots_interactor):
         except Exception as e:
             # We expect the sleep exception
             assert str(e) == 'Stop loop'
+        finally:
+            await bots_interactor.stop_bots()
 
 @pytest.mark.asyncio
 async def test_bot_polling_task(bots_interactor):
@@ -106,7 +111,7 @@ async def test_bot_polling_task(bots_interactor):
     mock_app.bot.delete_webhook = AsyncMock()
     mock_app.updater = AsyncMock()
     mock_app.updater.start_polling = AsyncMock()
-    mock_app.add_handler = AsyncMock()
+    mock_app.add_handler = MagicMock()
     
     # Create a mock builder
     mock_builder = MagicMock()
@@ -147,7 +152,7 @@ async def test_stop_bots(bots_interactor):
     mock_app.updater = AsyncMock()
     mock_app.updater.start_polling = AsyncMock()
     mock_app.updater.stop = AsyncMock()
-    mock_app.add_handler = AsyncMock()
+    mock_app.add_handler = MagicMock()
     
     # Make sure all mocks return None by default
     mock_app.add_handler.return_value = None
