@@ -1,8 +1,10 @@
 from buzzing.bots.bot_interface import BotInterface
+from buzzing.bots.stock_market_bot import StockMarketBot
+
 
 class TestBot(BotInterface):
     """A test implementation of BotInterface for development and testing.
-    
+
     This bot simply returns static messages to verify the bot infrastructure
     is working correctly.
     """

@@ -1,81 +1,79 @@
 import json
 import logging
 from sqlite3 import Connection, Error as SQLiteError
-from typing import List, Optional
+from typing import List
 from buzzing.model.bot_config import BotConfig
 from buzzing.model.subscription import Subscription
 from buzzing.util.class_loader import class_from_string
 
 LOG = logging.getLogger(__name__)
 
+
 class BotsConfigDao:
     """Data Access Object for bot configurations and subscriptions.
-    
+
     Handles all database operations related to bot configurations and user subscriptions.
     Uses parameterized queries to prevent SQL injection.
     """
 
     def __init__(self, db_connection: Connection):
-        """Initialize the DAO with a database connection.
-
-        Args:
-            db_connection: SQLite database connection
-        """
         self.db_connection = db_connection
 
     def fetch_all_bots_configs(self) -> List[BotConfig]:
-        """Fetch all active bot configurations.
+        """Fetch all active bot configurations."""
+        queries = [
+            """
+            SELECT
+                id, name, description, token, password,
+                entry_module, entry_class, metadata, is_active, cron
+            FROM bots_config
+            WHERE is_active = ?
+            """,
+            """
+            SELECT
+                id, name, description, token, password,
+                entry_module, entry_class, metadata, is_active
+            FROM bots_config
+            WHERE is_active = ?
+            """,
+        ]
 
-        Returns:
-            List of active bot configurations
+        cursor = None
+        for query in queries:
+            try:
+                cursor = self.db_connection.execute(query, (1,))
+                break
+            except SQLiteError:
+                continue
 
-        Raises:
-            SQLiteError: If database operation fails
-        """
-        try:
-            cursor = self.db_connection.execute(
-                """
-                SELECT
-                    id, name, description, token, password, 
-                    entry_module, entry_class, metadata, is_active
-                FROM bots_config
-                WHERE is_active = ?
-                """, (1,))
-            
-            bot_configs = []
-            for row in cursor:
-                try:
-                    bot_class = class_from_string(row[5], row[6])
-                    bot = bot_class()
-                    metadata = '{}' if row[7] is None else row[7]
-                    is_active = bool(int(row[8]))
-                    config = BotConfig(
-                        id=row[0],
-                        name=row[1],
-                        description=row[2],
-                        token=row[3],
-                        password=row[4],
-                        bot=bot,
-                        metadata=json.loads(metadata),
-                        is_active=is_active
-                    )
-                    bot_configs.append(config)
-                except Exception as e:
-                    LOG.error(f"Error creating bot config for {row[1]}: {e}")
-            return bot_configs
-        except SQLiteError as e:
-            LOG.error(f"Database error in fetch_all_bots_configs: {e}")
-            raise
+        if cursor is None:
+            raise SQLiteError("Failed to read bots_config")
+
+        bot_configs = []
+        for row in cursor:
+            try:
+                bot_class = class_from_string(row[5], row[6])
+                bot = bot_class()
+                metadata = '{}' if row[7] is None else row[7]
+                is_active = bool(int(row[8]))
+                cron = row[9] if len(row) > 9 else None
+                bot_configs.append(BotConfig(
+                    id=row[0],
+                    name=row[1],
+                    description=row[2],
+                    token=row[3],
+                    password=row[4],
+                    bot=bot,
+                    metadata=json.loads(metadata),
+                    is_active=is_active,
+                    cron=cron,
+                ))
+            except Exception as e:
+                LOG.error(f"Error creating bot config for {row[1]}: {e}")
+
+        return bot_configs
 
     def fetch_all_subscriptions(self) -> List[Subscription]:
-        """Fetch all active subscriptions.
-
-        Returns:
-            List of active subscriptions
-
-        Raises:
-            SQLiteError: If database operation fails
-        """
         try:
             cursor = self.db_connection.execute(
                 """
@@ -95,14 +93,6 @@ class BotsConfigDao:
             raise
 
     def subscribe(self, subscription: Subscription) -> None:
-        """Subscribe a user to a bot.
-
-        Args:
-            subscription: Subscription details
-
-        Raises:
-            SQLiteError: If database operation fails
-        """
         try:
             self.db_connection.execute(
                 """
@@ -124,14 +114,6 @@ class BotsConfigDao:
             raise
 
     def unsubscribe(self, subscription: Subscription) -> None:
-        """Unsubscribe a user from a bot.
-
-        Args:
-            subscription: Subscription to deactivate
-
-        Raises:
-            SQLiteError: If database operation fails
-        """
         try:
             self.db_connection.execute(
                 """

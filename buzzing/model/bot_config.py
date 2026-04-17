@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from buzzing.bots.bot_interface import BotInterface
 
 @dataclass(frozen=True)
@@ -27,3 +27,4 @@ class BotConfig:
     bot: BotInterface
     metadata: Dict[str, Any]
     is_active: bool
+    cron: Optional[str] = None

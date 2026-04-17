@@ -7,6 +7,7 @@ from buzzing.dao.bots_config_dao import BotsConfigDao
 import logging
 import asyncio
 from typing import List, Optional, Dict, Any, cast
+from buzzing.util.cron_scheduler import CronScheduler
 
 HELP_STR = """
 Supported commands:
@@ -40,6 +41,7 @@ class BotInteractor:
         
         # Initialize bot state
         self.stop_bot = False
+        self.cron_task: Optional[asyncio.Task[Any]] = None
         
         # Set up conversation handler for authentication
         self.start_handler = ConversationHandler(
@@ -89,6 +91,10 @@ class BotInteractor:
                 
                 # Create task for stop checking
                 stop_task = asyncio.create_task(check_stop())
+
+                if self.config.cron:
+                    scheduler = CronScheduler(self.config.cron, self.fetch)
+                    self.cron_task = asyncio.create_task(scheduler.run())
                 
                 try:
                     await stop_event.wait()
@@ -196,6 +202,13 @@ class BotInteractor:
                 if hasattr(self.application, 'updater') and self.application.updater and self.application.updater.running:
                     await self.application.updater.stop()
                 
+                if self.cron_task and not self.cron_task.done():
+                    self.cron_task.cancel()
+                    try:
+                        await self.cron_task
+                    except asyncio.CancelledError:
+                        pass
+
                 # Then stop and shutdown the application if it's running
                 if hasattr(self.application, 'running') and self.application.running:
                     await self.application.stop()
